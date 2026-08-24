@@ -1,6 +1,6 @@
 {
   "name": "multi-channel-notify",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "DeepSeek Harness 消息通知插件 · 7 类事件 × 多渠道推送 × 路由矩阵（Server酱³/Windows Toast/企业微信/Webhook）",
   "license": "MIT",
   "author": "wangxin",
