@@ -52,5 +52,6 @@
   "bugs": {
     "url": "https://github.com/lzylyd/multi-channel-notify/issues"
   },
-  "homepage": "https://github.com/lzylyd/multi-channel-notify#readme"
+  "homepage": "https://github.com/lzylyd/multi-channel-notify#readme",
+  "devDependencies": {}
 }
