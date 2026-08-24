@@ -1,8 +1,8 @@
 {
   "$schema": "https://dsh.community/schemas/dsh-plugin-0.15.json",
-  "id": "wangxin.dsh-notify",
+  "id": "wangxin.multi-channel-notify",
   "name": "DSH Notify",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "manifestVersion": "0.15",
   "facets": {
     "host": {
@@ -22,6 +22,6 @@
   },
   "license": "MIT",
   "source": {
-    "repository": "https://github.com/wangxin/dsh-notify"
+    "repository": "https://github.com/lzylyd/multi-channel-notify"
   }
 }

@@ -38,11 +38,11 @@ dsh web                                   # 重启生效
 ## 快速配置
 
 1. 设置页打开「消息推送」分区；
-2. 在 dsh-notify 配置表单向 `channels` 添加渠道实例并启用；
+2. 在 multi-channel-notify 配置表单向 `channels` 添加渠道实例并启用；
 3. 点「发送测试」验证链路；
 4. 完成——之后事件发生即推送。
 
-也可以直接编辑 `$DSH_HOME/settings.yaml` 的 `dsh-notify:` 段，保存实时生效。
+也可以直接编辑 `$DSH_HOME/settings.yaml` 的 `multi-channel-notify:` 段，保存实时生效。
 
 ## 渠道配置要点
 

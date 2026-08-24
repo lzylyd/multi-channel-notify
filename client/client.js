@@ -1,12 +1,12 @@
 /**
- * dsh-notify —— Web Client 入口（零构建，ModuleLoader 包装格式）。
+ * multi-channel-notify —— Web Client 入口（零构建，ModuleLoader 包装格式）。
  *
  * 在 DSH 设置页注册「消息推送」分区：展示渠道状态、逐渠道测试按钮。
  * 配置编辑本体由 settings 命名空间 schema 自动渲染的表单承担；本分区只做
- * schema 表单做不到的事——调用 host 端 /dsh-notify/test 做真实链路测试。
+ * schema 表单做不到的事——调用 host 端 /multi-channel-notify/test 做真实链路测试。
  */
 window.__ModuleLoader__.load({
-	id: "dsh-notify",
+	id: "multi-channel-notify",
 	factory: (require) => {
 		var module = { exports: {} };
 		var exports = module.exports;
@@ -49,7 +49,7 @@ window.__ModuleLoader__.load({
 				setBusy(true);
 				setNote("");
 				try {
-					const response = await fetch("/dsh-notify/test", {
+					const response = await fetch("/multi-channel-notify/test", {
 						method: "POST",
 						headers: { "content-type": "application/json" },
 						body: JSON.stringify({ channelId: channel.id }),
@@ -85,7 +85,7 @@ window.__ModuleLoader__.load({
 		function NotifySection() {
 			const [view, setView] = react.useState(null);
 			const load = react.useCallback(() => {
-				fetch("/dsh-notify/config")
+				fetch("/multi-channel-notify/config")
 					.then((r) => r.json())
 					.then(setView)
 					.catch(() => setView({ status: "unavailable" }));
@@ -104,7 +104,7 @@ window.__ModuleLoader__.load({
 					? h(
 							"span",
 							{ style: styles.muted },
-							"还没有配置任何渠道：在上方「dsh-notify」表单里向 channels 数组添加实例（Server酱³ / Windows Toast / 企业微信 / Webhook），保存后回到这里点「发送测试」。",
+							"还没有配置任何渠道：在上方「multi-channel-notify」表单里向 channels 数组添加实例（Server酱³ / Windows Toast / 企业微信 / Webhook），保存后回到这里点「发送测试」。",
 						)
 					: null,
 				channels.map((channel) => h(ChannelRow, { key: channel.id, channel })),
@@ -120,7 +120,7 @@ window.__ModuleLoader__.load({
 				ctx.slots.register(
 					{
 						name: "settings.section",
-						id: "dsh-notify",
+						id: "multi-channel-notify",
 						order: 1001,
 						label: "消息推送",
 					},
@@ -129,7 +129,7 @@ window.__ModuleLoader__.load({
 			);
 		}
 
-		exports.name = "dsh-notify";
+		exports.name = "multi-channel-notify";
 		exports.inject = inject;
 		exports.apply = apply;
 		return module.exports;
