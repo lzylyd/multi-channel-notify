@@ -34,7 +34,7 @@ dsh web                                   # 重启生效
 3. 点「发送测试」验证链路；
 4. 完成——之后事件发生即推送。
 
-也可以直接编辑 `$DSH_HOME/settings.yaml` 的 `dshNotify:` 段，保存实时生效。
+也可以直接编辑 `$DSH_HOME/settings.yaml` 的 `dsh-notify:` 段，保存实时生效。
 
 ## 渠道配置要点
 
@@ -44,7 +44,7 @@ dsh web                                   # 重启生效
 | | `apiUrl` | 或直接粘完整 API URL（优先于 sendKey） |
 | Windows Toast | `mode` | `auto` 自动判定 / `native` Windows 原生 / `wsl` 经 interop 弹宿主机 Toast；WinRT 实现，零依赖 |
 | 企业微信机器人 | `webhookUrl` + 可选 `secret` | 加签按官方规则 HMAC-SHA256 |
-| 自定义 Webhook | `url/method/headers/bodyTemplate` | 占位符 `{{json}}`（整对象 JSON）/`{{title}}`/`{{body}}`；模板留空发 `{"title","body"}` |
+| 自定义 Webhook | `url/method/headers/bodyTemplate` | 占位符 `{{json}}`（整对象 JSON）/`{{title}}`/`{{body}}`；模板留空发 `{"title": "…", "body": "…"}` |
 
 WSL→宿主机 Toast 要求 interop 可用（PATH 中有 `powershell.exe` 或存在
 `/mnt/c/Windows/System32/WindowsPowerShell/v1.0/powershell.exe`）；不可用时该渠道报错并在日志提示，不影响其他渠道。

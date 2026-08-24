@@ -32,7 +32,7 @@
 macOS、飞书未选入第一版；渠道注册表统一接口，后续加渠道只需新增一个适配器文件。
 
 ### 配置
-- settings 命名空间 `dshNotify`（schemastery schema，secret 字段 `.role('secret')` 自动脱敏）
+- settings 命名空间 `dsh-notify`（schemastery schema，secret 字段 `.role('secret')` 自动脱敏）
 - `$DSH_HOME/settings.yaml` 直改实时生效（settings watch）
 - Web 设置页自动渲染 schema 表单 + 本插件自带「消息推送」分区（状态展示 + 渠道测试按钮）
 - 路由粒度：全局事件开关 × 渠道实例启用 × 渠道级事件订阅矩阵（三层布尔）

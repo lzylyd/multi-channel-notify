@@ -55,6 +55,19 @@ test('serverchan：apiUrl 优先且自动补 .send 后缀；short/tags 生效', 
   assert.equal(body.tags, 'a|b')
 })
 
+test('回归：apiUrl 带 query 时 .send 只补到 pathname，查询串原样保留', () => {
+  const channel = normalizeChannel({
+    type: 'serverchan',
+    enabled: true,
+    serverchan: { apiUrl: 'https://example.custom/send/xyz?key=K&page=1' },
+  })
+  const { url } = serverchan.buildRequest(channel, MESSAGE)
+  const parsed = new URL(url)
+  assert.equal(parsed.pathname, '/send/xyz.send')
+  assert.equal(parsed.searchParams.get('key'), 'K')
+  assert.equal(parsed.searchParams.get('page'), '1')
+})
+
 test('serverchan：缺配置抛错；send 走注入的 fetch 且非 2xx 抛错', async () => {
   const empty = normalizeChannel({ type: 'serverchan', enabled: true })
   assert.throws(() => serverchan.buildRequest(empty, MESSAGE))
@@ -77,10 +90,13 @@ test('serverchan：缺配置抛错；send 走注入的 fetch 且非 2xx 抛错',
 // wecom
 // ---------------------------------------------------------------------------
 
-test('wecom：加签参数确定性（固定时钟）', () => {
+test('wecom：加签参数确定性 + 官方黄金向量（key=整串、msg 空）', () => {
   const { timestamp, sign } = wecom.signatureOf('mysecret', 1_700_000_000_000)
   assert.equal(timestamp, 1_700_000_000_000)
   assert.match(sign, /^[A-Za-z0-9+/=]+$/)
+  // 黄金向量由独立实现（python hmac.new(string_to_sign, digestmod=sha256)）计算，
+  // 锁定官方「整串作 key、消息为空」的加签方向，防止回退成 key=secret 的钉钉式写法
+  assert.equal(sign, 'HRiyltD8KQSp0mWexCskOhD/1F1HDSpwjuNY4CYxZZI=')
 })
 
 test('wecom：无签直连 URL；有签追加 timestamp+sign query', () => {
@@ -150,9 +166,22 @@ test('windows-toast：interop 探测（PATH 命中 / 兜底路径 / 缺失报错
   assert.throws(() => windowsToast.powershellCommand('wsl', { existsSync: () => false, pathEnv: '' }), /interop/)
 })
 
-test('windows-toast：脚本转义单引号并含 Toast 模板', () => {
-  const script = windowsToast.buildScript({ title: "It's", body: 'body' })
-  assert.ok(script.includes("It''s"))
+test('windows-toast：单引号 here-string 字面化 + XML 实体转义 + 换行压平', () => {
+  const script = windowsToast.buildScript({
+    title: "It's & <b>bold</b>",
+    body: 'line1\nline2 $(calc) & "q"',
+  })
+  // 单引号 here-string：内容完全字面化，$() 不被求值（无需也不应做 '' 翻倍）
+  assert.ok(script.includes("$template = @'"))
+  assert.ok(script.includes("It's"))
+  assert.ok(script.includes('$(calc)'))
+  assert.ok(!script.includes('"@'))
+  // XML 特殊字符必须转义，否则 XmlDocument.LoadXml 解析失败
+  assert.ok(script.includes('&amp;'))
+  assert.ok(script.includes('&lt;b&gt;bold&lt;/b&gt;'))
+  assert.ok(script.includes('&quot;q&quot;'))
+  // 换行压平：here-string 行首 '@ 提前终止风险
+  assert.ok(!/\nline2/.test(script))
   assert.ok(script.includes('ToastGeneric'))
   assert.ok(script.includes('ToastNotificationManager'))
 })
