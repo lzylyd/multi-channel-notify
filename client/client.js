@@ -109,27 +109,54 @@ window.__ModuleLoader__.load({
 			return h("input", { ...common });
 		}
 
-		/** 字典编辑器：每行「Key: Value」（首个冒号分隔），空行忽略。 */
+		/**
+		 * 字典编辑器：每行「Key: Value」（首个冒号分隔），空行忽略。
+		 * 编辑态以本地原始文本为准（受控回弹修复）：全部行合法时即时提交；
+		 * 存在非法行（如刚敲到一半的「X-Token」）只暂存不提交，失焦时兜底解析，
+		 * 保证逐字键入不被父状态重渲染拉回空值。
+		 */
 		function DictField(props) {
-			const text = Object.entries(props.value ?? {})
-				.map(([k, v]) => `${k}: ${v}`)
-				.join("\n");
+			const serialize = (v) =>
+				Object.entries(v ?? {})
+					.map(([k, v2]) => `${k}: ${v2}`)
+					.join("\n");
+			const parse = (text) => {
+				const next = {};
+				for (const line of String(text).split("\n")) {
+					const trimmed = line.trim();
+					if (trimmed === "") continue;
+					const sep = trimmed.indexOf(":");
+					if (sep <= 0) return null;
+					next[trimmed.slice(0, sep).trim()] = trimmed.slice(sep + 1).trim();
+				}
+				return next;
+			};
+			const [raw, setRaw] = react.useState(serialize(props.value));
+			const committedRef = react.useRef(serialize(props.value));
+			react.useEffect(() => {
+				const serialized = serialize(props.value);
+				if (serialized !== committedRef.current) {
+					committedRef.current = serialized;
+					setRaw(serialized);
+				}
+			}, [props.value]);
+			const commit = (text, allowPartial) => {
+				const parsed = parse(text);
+				if (parsed === null && !allowPartial) return;
+				const valueOut = parsed !== null && Object.keys(parsed).length > 0 ? parsed : undefined;
+				committedRef.current = serialize(valueOut);
+				props.onChange(valueOut);
+			};
 			return h("textarea", {
 				style: { ...styles.input, minWidth: 280, fontFamily: "monospace" },
 				rows: 2,
 				placeholder: props.placeholder ?? "X-Token: abc\nX-Env: prod",
-				value: text,
+				value: raw,
 				onChange: (e) => {
-					const next = {};
-					for (const line of String(e.target.value).split("\n")) {
-						const trimmed = line.trim();
-						if (trimmed === "") continue;
-						const sep = trimmed.indexOf(":");
-						if (sep <= 0) continue;
-						next[trimmed.slice(0, sep).trim()] = trimmed.slice(sep + 1).trim();
-					}
-					props.onChange(Object.keys(next).length > 0 ? next : undefined);
+					setRaw(e.target.value);
+					commit(e.target.value, false);
 				},
+				onBlur: () => commit(raw, true),
 			});
 		}
 

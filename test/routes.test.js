@@ -72,15 +72,6 @@ describe('mergeChannelSecrets', () => {
   })
 })
 
-/** 键序不同的深比较辅助：验证 buildSectionOps 不因键序误判。 */
-const sortDeep = value => {
-  if (Array.isArray(value)) return value.map(sortDeep)
-  if (value !== null && typeof value === 'object') {
-    return Object.fromEntries(Object.keys(value).sort().map(k => [k, sortDeep(value[k])]))
-  }
-  return value
-}
-
 describe('buildSectionOps', () => {
   it('值相等但键序不同（密钥合并追加到桶尾）→ 零 ops，不冗余重写', () => {
     const current = { events: {}, dedup: {}, message: {}, channels: [{ id: 'c1', type: 'serverchan', enabled: true, serverchan: { sendKey: 'K', apiUrl: 'https://x' } }] }
