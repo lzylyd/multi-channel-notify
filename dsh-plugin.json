@@ -1,0 +1,27 @@
+{
+  "$schema": "https://dsh.community/schemas/dsh-plugin-0.15.json",
+  "id": "wangxin.dsh-notify",
+  "name": "DSH Notify",
+  "version": "0.1.0",
+  "manifestVersion": "0.15",
+  "facets": {
+    "host": {
+      "entry": "./lib/std.js",
+      "apiVersion": "v1alpha1"
+    }
+  },
+  "requires": {
+    "contracts": [
+      {
+        "apiVersion": "messages.dsh/v1alpha1",
+        "kind": "MessageObserver",
+        "optional": true,
+        "fallback": "事件观察经宿主原生事件通道完成；标准消息观察协议就绪前以 degraded 状态运行，不影响通知功能"
+      }
+    ]
+  },
+  "license": "MIT",
+  "source": {
+    "repository": "https://github.com/wangxin/dsh-notify"
+  }
+}

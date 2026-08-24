@@ -1,0 +1,54 @@
+{
+  "name": "dsh-notify",
+  "version": "0.1.0",
+  "description": "DeepSeek Harness 消息通知插件：监听计划完成/回合完成/子代理完成/审批等待/出错/工作流完成/目标完成等事件，按「事件×渠道」路由矩阵推送到 Server酱³、Windows Toast（原生/WSL→宿主）、企业微信机器人与自定义 Webhook。",
+  "license": "MIT",
+  "author": "wangxin",
+  "type": "module",
+  "main": "./lib/index.js",
+  "exports": {
+    ".": "./lib/index.js",
+    "./client": "./client/client.js",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "lib",
+    "client",
+    "cordis.patch.yml",
+    "dsh-plugin.json",
+    "README.md"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/wangxin/dsh-notify.git"
+  },
+  "keywords": [
+    "deepseek-harness",
+    "dsh",
+    "dsh-plugin",
+    "notification",
+    "notify",
+    "serverchan",
+    "serverjiang",
+    "windows-toast",
+    "wsl",
+    "wecom",
+    "webhook"
+  ],
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web"
+    }
+  },
+  "peerDependencies": {
+    "@deepseek-ai/dsh-settings": "*",
+    "@deepseek-ai/schemastery": "*",
+    "react": "^18.2.0"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}
