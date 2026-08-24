@@ -7,7 +7,7 @@
 import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
 
-import { mergeChannelSecrets, sameOrigin } from '../lib/routes.js'
+import { buildSectionOps, isTrustedHost, mergeChannelSecrets, sameOrigin } from '../lib/routes.js'
 
 /** 构造最小渠道对象。 */
 const channelOf = (id, type, bucket = {}) => ({ id, type, enabled: true, [type]: bucket })
@@ -72,6 +72,74 @@ describe('mergeChannelSecrets', () => {
   })
 })
 
+/** 键序不同的深比较辅助：验证 buildSectionOps 不因键序误判。 */
+const sortDeep = value => {
+  if (Array.isArray(value)) return value.map(sortDeep)
+  if (value !== null && typeof value === 'object') {
+    return Object.fromEntries(Object.keys(value).sort().map(k => [k, sortDeep(value[k])]))
+  }
+  return value
+}
+
+describe('buildSectionOps', () => {
+  it('值相等但键序不同（密钥合并追加到桶尾）→ 零 ops，不冗余重写', () => {
+    const current = { events: {}, dedup: {}, message: {}, channels: [{ id: 'c1', type: 'serverchan', enabled: true, serverchan: { sendKey: 'K', apiUrl: 'https://x' } }] }
+    // 模拟合并结果：apiUrl 在前、sendKey 追加在尾（与 schema 声明序相反）
+    const next = { events: {}, dedup: {}, message: {}, channels: [{ id: 'c1', type: 'serverchan', enabled: true, serverchan: { apiUrl: 'https://x', sendKey: 'K' } }] }
+    assert.deepEqual(buildSectionOps(current, next), [])
+  })
+
+  it('真实变化 → 对应段下发 set op', () => {
+    const current = { events: { a: true }, dedup: {}, message: {}, channels: [] }
+    const ops = buildSectionOps(current, { ...current, events: { a: false }, channels: [{ id: 'n' }] })
+    assert.equal(ops.length, 2)
+    assert.deepEqual(ops.map(op => op.path), [['events'], ['channels']])
+  })
+
+  it('回归：改渠道 type 后旧类型桶不残留', () => {
+    const current = { channels: [] }
+    const incoming = { channels: [{ id: 'c1', type: 'wecom', enabled: true, wecom: {} }] }
+    const merged = mergeChannelSecrets(incoming, current)
+    assert.equal('serverchan' in merged.channels[0], false)
+  })
+
+  it('非字符串 provided 视同未提供 → 继承已存密钥（直连 API 写垃圾类型不致损毁）', () => {
+    const current = { channels: [{ id: 'c1', type: 'wecom', enabled: true, wecom: { secret: 'REAL' } }] }
+    const incoming = { channels: [{ id: 'c1', type: 'wecom', enabled: true, wecom: { secret: 42 } }] }
+    const merged = mergeChannelSecrets(incoming, current)
+    assert.equal(merged.channels[0].wecom.secret, 'REAL')
+  })
+
+  it('重复渠道 id：按首个匹配合并（手工构造 POST 的边界行为钉住）', () => {
+    const current = { channels: [{ id: 'dup', type: 'wecom', enabled: true, wecom: { secret: 'S' } }] }
+    const incoming = { channels: [
+      { id: 'dup', type: 'wecom', enabled: true, wecom: {} },
+      { id: 'dup', type: 'wecom', enabled: true, wecom: {} },
+    ] }
+    const merged = mergeChannelSecrets(incoming, current)
+    assert.equal(merged.channels[0].wecom.secret, 'S')
+    assert.equal(merged.channels[1].wecom.secret, 'S')
+  })
+})
+
+describe('isTrustedHost', () => {
+  it('localhost/127.0.0.1/[::1] 任意端口放行', () => {
+    for (const host of ['localhost:3080', '127.0.0.1:3080', '[::1]:3080', 'localhost']) {
+      assert.equal(isTrustedHost(host), true, host)
+    }
+  })
+
+  it('外部域名（含解析到本机的 rebinding 域）拒绝', () => {
+    for (const host of ['evil.example:3080', '192.168.1.5:3080', 'localhost.evil.com', '', undefined]) {
+      assert.equal(isTrustedHost(host), false, String(host))
+    }
+  })
+
+  it('畸形 IPv6 拒绝', () => {
+    assert.equal(isTrustedHost('[::1'), false)
+  })
+})
+
 describe('sameOrigin', () => {
   const requestWith = headers => ({ headers })
 
@@ -94,5 +162,11 @@ describe('sameOrigin', () => {
 
   it('畸形 Origin 拒绝', () => {
     assert.equal(sameOrigin(requestWith({ host: 'h', origin: '::not-a-url' }), true), false)
+  })
+
+  it('有 Origin 无 Host 拒绝；Referer 与 Host 不匹配拒绝；端口不同拒绝', () => {
+    assert.equal(sameOrigin(requestWith({ origin: 'http://127.0.0.1:3080' }), true), false)
+    assert.equal(sameOrigin(requestWith({ host: '127.0.0.1:3080', referer: 'http://127.0.0.1:9999/x' }), true), false)
+    assert.equal(sameOrigin(requestWith({ host: '127.0.0.1:3080', origin: 'http://127.0.0.1:9999' }), true), false)
   })
 })

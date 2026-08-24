@@ -51,7 +51,9 @@ window.__ModuleLoader__.load({
 				{ key: "tags", label: "标签（竖线分隔，可选）" },
 			],
 			"windows-toast": [
-				{ key: "mode", label: "弹出来源", kind: "select", options: ["auto", "native", "wsl"] },
+				// 注意桶名是 camelCase 的 windowsToast（与 config-schema.js 声明一致），
+				// kebab 的渠道 type 不能直接当字段桶名——曾因此读写双失效
+				{ bucket: "windowsToast", key: "mode", label: "弹出来源", kind: "select", options: ["auto", "native", "wsl"] },
 			],
 			wecom: [
 				{ key: "webhookUrl", label: "群机器人 Webhook 地址（含 ?key=）" },
@@ -61,6 +63,7 @@ window.__ModuleLoader__.load({
 			webhook: [
 				{ key: "url", label: "目标 URL" },
 				{ key: "method", label: "HTTP 方法", kind: "select", options: ["POST", "PUT", "GET"] },
+				{ key: "headers", label: "额外请求头（每行 Key: Value）", kind: "dict" },
 				{ key: "bodyTemplate", label: "正文模板（{{json}}/{{title}}/{{body}}，留空发默认 JSON）", kind: "textarea" },
 				{ key: "timeoutMs", label: "请求超时毫秒", kind: "number" },
 			],
@@ -104,6 +107,30 @@ window.__ModuleLoader__.load({
 			if (props.kind === "textarea") return h("textarea", { ...common, rows: 2 });
 			if (props.kind === "password") return h("input", { ...common, type: "password", autoComplete: "off" });
 			return h("input", { ...common });
+		}
+
+		/** 字典编辑器：每行「Key: Value」（首个冒号分隔），空行忽略。 */
+		function DictField(props) {
+			const text = Object.entries(props.value ?? {})
+				.map(([k, v]) => `${k}: ${v}`)
+				.join("\n");
+			return h("textarea", {
+				style: { ...styles.input, minWidth: 280, fontFamily: "monospace" },
+				rows: 2,
+				placeholder: props.placeholder ?? "X-Token: abc\nX-Env: prod",
+				value: text,
+				onChange: (e) => {
+					const next = {};
+					for (const line of String(e.target.value).split("\n")) {
+						const trimmed = line.trim();
+						if (trimmed === "") continue;
+						const sep = trimmed.indexOf(":");
+						if (sep <= 0) continue;
+						next[trimmed.slice(0, sep).trim()] = trimmed.slice(sep + 1).trim();
+					}
+					props.onChange(Object.keys(next).length > 0 ? next : undefined);
+				},
+			});
 		}
 
 		function SelectField(props) {
@@ -173,7 +200,7 @@ window.__ModuleLoader__.load({
 					const data = await response.json().catch(() => null);
 					const row = data && Array.isArray(data.results) ? data.results.find((r) => r.id === channel.id) : null;
 					if (!data || !Array.isArray(data.results)) setNote(`HTTP ${response.status}`);
-					else if (!row) setNote(data.note ?? "渠道未启用或不存在");
+					else if (!row) setNote("⚠️ 未测试：渠道需先保存且处于启用状态");
 					else if (row.ok) setNote("✅ 测试通知已发送");
 					else setNote("❌ 发送失败（详见 harness 日志）");
 				} catch (error) {
@@ -217,7 +244,8 @@ window.__ModuleLoader__.load({
 				),
 				// 类型相关字段
 				...fields.map((field) => {
-					const bucket = channel[channel.type] ?? {};
+					const bucketName = field.bucket ?? channel.type;
+					const bucket = channel[bucketName] ?? {};
 					const isSecret = field.secret === true;
 					const hint = isSecret && secretIsSet(view, channel.id, channel.type, field.key)
 						? h("span", { style: styles.muted }, "已保存（留空保持不变）")
@@ -230,23 +258,24 @@ window.__ModuleLoader__.load({
 						value: isSecret ? "" : bucket[field.key],
 						onChange: (v) => {
 							if (isSecret && v === "") return; // 空=保持已存值
-							onEdited({ ...channel, [channel.type]: { ...bucket, [field.key]: v } });
+							onEdited({ ...channel, [bucketName]: { ...bucket, [field.key]: v } });
 						},
 					};
+					const control =
+						field.kind === "select" ? h(SelectField, controlProps)
+						: field.kind === "dict" ? h(DictField, controlProps)
+						: h(TextField, controlProps);
 					return h(
 						"label",
-						{ key: field.key, style: styles.row },
-						h("span", { style: { minWidth: 200, fontSize: 12 } }, field.label, " "),
-						field.kind === "select" ? h(SelectField, controlProps) : h(TextField, controlProps),
-						hint,
+						{ key: field.key, style: styles.col },
+						h("span", { style: { fontSize: 12 } }, field.label, " ", hint),
+						control,
 					);
 				}),
 				note === "" ? null : h("span", { style: styles.result }, note),
-				void busy,
-				void test,
 				h(
 					"button",
-					{ style: styles.button, onClick: test, disabled: busy },
+					{ style: styles.button, onClick: test, disabled: busy || channel.enabled !== true, title: channel.enabled !== true ? "启用并保存后才能测试" : undefined },
 					busy ? "发送中…" : "发送测试",
 				),
 			);
@@ -387,12 +416,22 @@ window.__ModuleLoader__.load({
 	mask: ${VOLUME_SVG_MASK} center / contain no-repeat;
 }`;
 
-		/** 给文本匹配的设置导航按钮打标记；返回清理函数（observer + 标记 + 样式）。 */
+		/**
+		 * 给文本匹配的设置导航按钮打标记；返回清理函数（observer + 标记 + 样式）。
+		 * 局限：按当前界面语言的分区文本精确匹配（与 better-sidebar 同款方案；
+		 * 其支持 locale thunk，本插件暂为单语言硬编码）。运行时若切换语言，
+		 * 图标优雅回退齿轮，不影响功能。
+		 */
 		function registerSettingsNavIcon(labelText) {
+			let disposed = false;
 			const sync = () => {
+				if (disposed) return;
 				const buttons = document.querySelectorAll('[role="dialog"] nav button');
 				for (const button of buttons) {
-					if (button.textContent?.trim() === labelText) button.setAttribute(NAV_MARKER, "");
+					const match = button.textContent?.trim() === labelText;
+					const marked = button.hasAttribute(NAV_MARKER);
+					if (match === marked) continue; // 无变更不写 DOM
+					if (match) button.setAttribute(NAV_MARKER, "");
 					else button.removeAttribute(NAV_MARKER);
 				}
 			};
@@ -407,6 +446,7 @@ window.__ModuleLoader__.load({
 				document.head.appendChild(style);
 			}
 			return () => {
+				disposed = true;
 				observer.disconnect();
 				document.querySelectorAll(`[${NAV_MARKER}]`).forEach((el) => el.removeAttribute(NAV_MARKER));
 				document.getElementById(NAV_ICON_STYLE_ID)?.remove();
