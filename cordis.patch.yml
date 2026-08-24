@@ -1,5 +1,5 @@
-# Bundle patch: `dsh plugin --profile web add dsh-notify` 安装时自动注册本插件行。
+# Bundle patch: `dsh plugin --profile web add multi-channel-notify` 安装时自动注册本插件行。
 # （dsh 启动器会把声明了 dsh.bundle.patch 的依赖调和进 profile 的 bundle 层。）
 - insert:
     - id: dsh-notify
-      name: dsh-notify
+      name: multi-channel-notify

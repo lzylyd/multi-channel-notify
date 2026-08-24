@@ -1,0 +1,52 @@
+name: Release
+
+# 发版方式（二选一）：
+# 1. GitHub Release 页发布一个 release（推荐，tag 以 v 开头且与包版本一致）
+# 2. Actions 页手动触发 workflow_dispatch（跳过 tag 校验）
+on:
+  release:
+    types: [released]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write # npm provenance（公开可验证的构建来源签名）
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          registry-url: https://registry.npmjs.org
+
+      - name: Version consistency guard (package.json = dsh-plugin.json = tag)
+        run: |
+          node -e "
+            const pkg = require('./package.json');
+            const manifest = require('./dsh-plugin.json');
+            if (pkg.version !== manifest.version) {
+              console.error(\`version drift: package.json \${pkg.version} != dsh-plugin.json \${manifest.version}\`);
+              process.exit(1);
+            }
+            const ref = process.env.GITHUB_REF ?? '';
+            if (ref.startsWith('refs/tags/v') && ref !== \`refs/tags/v\${pkg.version}\`) {
+              console.error(\`tag \${ref.slice(10)} != package version v\${pkg.version}\`);
+              process.exit(1);
+            }
+            console.log(\`releasing v\${pkg.version}\`);
+          "
+
+      - name: Unit tests
+        run: node --test test/kernel.test.js test/channels.test.js test/dispatcher.test.js
+
+      - name: Dry run — verify tarball contents
+        run: npm pack --dry-run
+
+      - name: Publish to npm
+        run: npm publish --access public --provenance
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

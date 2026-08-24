@@ -1,4 +1,12 @@
-# dsh-notify
+# multi-channel-notify
+
+<p align="center">
+  <a href="https://github.com/lzylyd/multi-channel-notify/actions/workflows/ci.yml"><img src="https://github.com/lzylyd/multi-channel-notify/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+  <a href="https://www.npmjs.com/package/multi-channel-notify"><img src="https://img.shields.io/npm/v/multi-channel-notify" alt="npm version"></a>
+  <a href="./LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="License: MIT"></a>
+  <img src="https://img.shields.io/node/v/multi-channel-notify" alt="node >= 22">
+  <a href="https://github.com/topics/dsh-plugin"><img src="https://img.shields.io/badge/topic-dsh--plugin-8A2BE2" alt="dsh-plugin"></a>
+</p>
 
 <p align="center">
   <strong>DeepSeek Harness 消息通知插件 · 事件可配 × 渠道可配 × 路由矩阵</strong><br>
@@ -21,7 +29,7 @@ Agent 在后台跑长任务时，你不用再盯着网页圆点——事件发�
 ## 安装
 
 ```sh
-dsh plugin --profile web add dsh-notify   # 或本地路径 ./dsh-notify
+dsh plugin --profile web add multi-channel-notify   # 或本地路径 ./multi-channel-notify
 dsh web                                   # 重启生效
 ```
 

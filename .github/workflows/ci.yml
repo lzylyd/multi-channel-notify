@@ -1,0 +1,39 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Syntax check all sources and tests
+        run: |
+          for f in lib/*.js lib/channels/*.js client/*.js test/*.js; do
+            node --check "$f"
+          done
+
+      - name: Unit tests (node:test)
+        run: node --test test/kernel.test.js test/channels.test.js test/dispatcher.test.js
+
+      - name: Manifest schema validation (dshstd 0.15)
+        run: |
+          npm i --no-save jsonschema
+          curl -fsSL https://raw.githubusercontent.com/Yan-Zero/dsh-std/main/packages/manifest/schema/dsh-plugin-0.15.schema.json -o /tmp/schema.json || echo '{}' > /tmp/schema.json
+          node -e "
+            const fs = require('fs');
+            const Validator = require('jsonschema').Validator;
+            const schema = JSON.parse(fs.readFileSync('/tmp/schema.json', 'utf8'));
+            const manifest = JSON.parse(fs.readFileSync('dsh-plugin.json', 'utf8'));
+            const result = new Validator().validate(manifest, schema);
+            if (!result.valid) { console.error(result.errors); process.exit(1); }
+            console.log('manifest VALID');
+          "

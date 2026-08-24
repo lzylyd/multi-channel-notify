@@ -1,7 +1,7 @@
 {
-  "name": "dsh-notify",
+  "name": "multi-channel-notify",
   "version": "0.1.0",
-  "description": "DeepSeek Harness 消息通知插件：监听计划完成/回合完成/子代理完成/审批等待/出错/工作流完成/目标完成等事件，按「事件×渠道」路由矩阵推送到 Server酱³、Windows Toast（原生/WSL→宿主）、企业微信机器人与自定义 Webhook。",
+  "description": "DeepSeek Harness 消息通知插件 · 7 类事件 × 多渠道推送 × 路由矩阵（Server酱³/Windows Toast/企业微信/Webhook）",
   "license": "MIT",
   "author": "wangxin",
   "type": "module",
@@ -21,20 +21,17 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/wangxin/dsh-notify.git"
+    "url": "git+https://github.com/lzylyd/multi-channel-notify.git"
   },
   "keywords": [
-    "deepseek-harness",
     "dsh",
+    "deepseek-harness",
     "dsh-plugin",
     "notification",
-    "notify",
     "serverchan",
-    "serverjiang",
-    "windows-toast",
-    "wsl",
     "wecom",
-    "webhook"
+    "webhook",
+    "windows-toast"
   ],
   "dsh": {
     "bundle": {
@@ -51,5 +48,9 @@
   },
   "engines": {
     "node": ">=22"
-  }
+  },
+  "bugs": {
+    "url": "https://github.com/lzylyd/multi-channel-notify/issues"
+  },
+  "homepage": "https://github.com/lzylyd/multi-channel-notify#readme"
 }
