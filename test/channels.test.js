@@ -169,7 +169,7 @@ test('windows-toast：interop 探测（PATH 命中 / 兜底路径 / 缺失报错
 test('windows-toast：单引号 here-string 字面化 + XML 实体转义 + 换行压平', () => {
   const script = windowsToast.buildScript({
     title: "It's & <b>bold</b>",
-    body: 'line1\nline2 $(calc) & "q"',
+    body: 'line1\nline2\r\nline3\rlast $(calc) & "q"',
   })
   // 单引号 here-string：内容完全字面化，$() 不被求值（无需也不应做 '' 翻倍）
   assert.ok(script.includes("$template = @'"))
@@ -180,8 +180,10 @@ test('windows-toast：单引号 here-string 字面化 + XML 实体转义 + 换�
   assert.ok(script.includes('&amp;'))
   assert.ok(script.includes('&lt;b&gt;bold&lt;/b&gt;'))
   assert.ok(script.includes('&quot;q&quot;'))
-  // 换行压平：here-string 行首 '@ 提前终止风险
-  assert.ok(!/\nline2/.test(script))
+  // 换行压平必须覆盖 \n、\r\n、孤立 \r 三种形态——PowerShell tokenizer 把
+  // 孤立 CR 也当换行并在其后检查 here-string 收尾符，漏掉即注入面回归
+  assert.ok(!script.includes('\r'), '脚本不得包含任何 CR')
+  assert.ok(!/\nline2|\nline3|\nlast/.test(script))
   assert.ok(script.includes('ToastGeneric'))
   assert.ok(script.includes('ToastNotificationManager'))
 })
