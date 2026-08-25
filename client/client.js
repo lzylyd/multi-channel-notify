@@ -24,7 +24,7 @@ window.__ModuleLoader__.load({
 		const ROUTE_PREFIX = "/multi-channel-notify";
 		const SECTION_LABEL = "消息推送";
 		const NAV_MARKER = "data-mcn-settings-nav";
-		const PLUGIN_VERSION = "0.1.5";
+		const PLUGIN_VERSION = "0.1.6";
 
 		const EVENT_LABELS = {
 			"plan-completed": ["计划完成", "退出计划模式/计划被批准"],
@@ -89,7 +89,7 @@ window.__ModuleLoader__.load({
 		// ---- 样式（对齐 dsh-better-sidebar 设置页的设计 token）----
 		const UI_STYLE_ID = "multi-channel-notify-ui";
 		const UI_CSS = `
-.mcn-section { display:flex; flex-direction:column; gap:16px; width:100%; max-width:760px; }
+.mcn-section { display:flex; flex-direction:column; gap:16px; width:100%; max-width:min(760px,100%); min-width:0; }
 .mcn-badge { display:inline-flex; align-items:center; gap:8px; align-self:flex-start;
   border:1px solid var(--dsw-alias-border-l2); background:var(--dsw-alias-bg-layer-2);
   border-radius:999px; padding:4px 12px 4px 14px; font-size:12px; line-height:18px; }
@@ -105,7 +105,7 @@ window.__ModuleLoader__.load({
   border-radius:999px; padding:1px 8px; font-size:11px; font-weight:500; line-height:16px; font-variant-numeric:tabular-nums; }
 .mcn-empty { color:var(--dsw-alias-label-tertiary); font-size:12px; line-height:18px; padding:2px; }
 .mcn-row { display:flex; justify-content:space-between; align-items:center; gap:16px;
-  padding:12px 2px; border-bottom:1px solid var(--dsw-alias-border-l2); }
+  padding:12px 2px; border-bottom:1px solid var(--dsw-alias-border-l2); flex-wrap:wrap; min-width:0; }
 .mcn-row:last-child { border-bottom:none; }
 .mcn-row-text { display:flex; flex-direction:column; gap:4px; min-width:0; }
 .mcn-title { color:var(--dsw-alias-label-primary); font-size:14px; line-height:22px; }
@@ -130,10 +130,10 @@ window.__ModuleLoader__.load({
 .mcn-miniswitch .mcn-switch-input:checked + .mcn-switch-track .mcn-switch-thumb { transform:translate(14px); }
 /* 渠道卡片列表（单列，避免窄卡片文本截断） */
 .mcn-grid { display:flex; flex-direction:column; gap:12px; }
-.mcn-card { display:flex; flex-direction:column; position:relative; overflow:hidden; min-height:96px;
+.mcn-card { display:flex; flex-direction:column; position:relative; overflow:hidden; min-height:96px; width:100%;
   font:inherit; color:inherit; border:1px solid var(--dsw-alias-border-l2); border-radius:12px;
   background:0 0; transition:background .12s,border-color .12s; }
-.mcn-card-main { display:flex; flex-direction:column; flex:1; gap:6px; width:100%; padding:12px;
+.mcn-card-main { display:flex; flex-direction:column; flex:1; gap:6px; width:100%; min-width:0; padding:12px;
   font:inherit; color:inherit; text-align:left; background:0 0; border:0; border-radius:inherit; cursor:pointer; }
 .mcn-card:hover { background:var(--dsw-alias-interactive-bg-hover); }
 .mcn-card-on { border-color:color-mix(in srgb,var(--dsw-alias-button-primary-fill) 45%,transparent);
@@ -168,7 +168,8 @@ window.__ModuleLoader__.load({
 /* 输入控件 */
 .mcn-input { box-sizing:border-box; appearance:none; border:1px solid var(--dsw-alias-border-l2);
   background:var(--dsw-alias-bg-layer-1); color:var(--dsw-alias-label-primary);
-  border-radius:8px; padding:6px 10px; font:inherit; font-size:12px; line-height:18px; width:280px; max-width:100%; }
+  border-radius:8px; padding:6px 10px; font:inherit; font-size:12px; line-height:18px;
+  width:100%; max-width:280px; min-width:120px; }
 .mcn-input:focus-visible { outline:2px solid var(--dsw-alias-state-business-primary); outline-offset:1px; }
 .mcn-input::placeholder { color:var(--dsw-alias-label-tertiary); }
 .mcn-textarea { width:280px; min-height:56px; resize:vertical; font-family:var(--ds-font-family-code,monospace); }
@@ -527,7 +528,7 @@ select.mcn-input { width:auto; min-width:120px; cursor:pointer; }
 							className: "mcn-btn",
 							onClick: test,
 							disabled: busy || channel.enabled !== true,
-							title: channel.enabled !== true ? "启用并保存后才能测试" : undefined,
+							title: channel.enabled !== true ? "启用并保存后才能测试" : "测试使用已保存的配置；改密钥后请先点保存",
 						},
 						busy ? "发送中…" : "发送测试",
 					),
