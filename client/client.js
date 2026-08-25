@@ -24,7 +24,7 @@ window.__ModuleLoader__.load({
 		const ROUTE_PREFIX = "/multi-channel-notify";
 		const SECTION_LABEL = "消息推送";
 		const NAV_MARKER = "data-mcn-settings-nav";
-		const PLUGIN_VERSION = "0.1.4";
+		const PLUGIN_VERSION = "0.1.5";
 
 		const EVENT_LABELS = {
 			"plan-completed": ["计划完成", "退出计划模式/计划被批准"],
@@ -78,7 +78,6 @@ window.__ModuleLoader__.load({
 				"windows-toast": ["M2 8h20", "M10 4v4", "M4 4h16a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z"],
 				wecom: ["M7.9 20A9 9 0 1 0 4 16.1L2 22Z"],
 				webhook: ["M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z", "M2 12h20"],
-				plus: ["M5 12h14", "M12 5v14"],
 			}[props.type] ?? [];
 			return h(
 				"svg",
@@ -129,8 +128,8 @@ window.__ModuleLoader__.load({
 .mcn-miniswitch .mcn-switch-track { width:30px; height:16px; border-radius:8px; }
 .mcn-miniswitch .mcn-switch-thumb { width:10px; height:10px; }
 .mcn-miniswitch .mcn-switch-input:checked + .mcn-switch-track .mcn-switch-thumb { transform:translate(14px); }
-/* 渠道卡片网格 */
-.mcn-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(180px,1fr)); gap:12px; }
+/* 渠道卡片列表（单列，避免窄卡片文本截断） */
+.mcn-grid { display:flex; flex-direction:column; gap:12px; }
 .mcn-card { display:flex; flex-direction:column; position:relative; overflow:hidden; min-height:96px;
   font:inherit; color:inherit; border:1px solid var(--dsw-alias-border-l2); border-radius:12px;
   background:0 0; transition:background .12s,border-color .12s; }
@@ -156,12 +155,6 @@ window.__ModuleLoader__.load({
   color:var(--dsw-alias-label-secondary); font:inherit; font-size:11px; font-weight:500; line-height:16px;
   text-align:left; transition:background .12s,color .12s; }
 .mcn-card-foot:hover { background:var(--dsw-alias-interactive-bg-hover-accent); color:var(--dsw-alias-brand-primary); }
-.mcn-add-card { border-style:dashed; align-items:flex-start; text-align:left; cursor:pointer; padding:12px;
-  font:inherit; color:inherit; background:0 0; }
-.mcn-add-card:hover { border-color:var(--dsw-alias-interactive-bg-hover-accent);
-  background:var(--dsw-alias-interactive-bg-hover); color:var(--dsw-alias-label-primary); }
-.mcn-add-card .mcn-chip { color:var(--dsw-alias-label-tertiary); }
-.mcn-add-card:hover .mcn-chip { color:var(--dsw-alias-button-primary-fill); }
 /* 渠道编辑面板（全宽） */
 .mcn-editor { box-sizing:border-box; display:flex; flex-direction:column; gap:2px;
   border:1px solid var(--dsw-alias-border-l2); border-radius:12px;
@@ -360,15 +353,23 @@ select.mcn-input { width:auto; min-width:120px; cursor:pointer; }
 		}
 
 		// ---- 渠道 ----
-		let autoSeq = 0;
-		function newChannel(type) {
-			autoSeq += 1;
-			return {
-				id: `${type}-${Date.now().toString(36)}${autoSeq}`,
-				type,
-				enabled: false,
-				events: Object.fromEntries(EVENT_KINDS.map((k) => [k, true])),
-			};
+		/**
+		 * 每类渠道固定一条配置：按 TYPE_LABELS 顺序归一化，同类取第一条，
+		 * 缺失的类型补默认（id 稳定为 `<type>-default`）；多余的同类型渠道丢弃
+		 * （保存后连同其密钥一起清除）。历史数据里的重复渠道由此收敛。
+		 */
+		function normalizeChannels(raw) {
+			const byType = new Map();
+			for (const channel of Array.isArray(raw) ? raw : []) {
+				if (channel && typeof channel.type === "string" && TYPE_LABELS[channel.type] && !byType.has(channel.type)) {
+					byType.set(channel.type, channel);
+				}
+			}
+			return Object.keys(TYPE_LABELS).map((type) => {
+				const found = byType.get(type);
+				if (found) return { events: Object.fromEntries(EVENT_KINDS.map((k) => [k, true])), ...found };
+				return { id: `${type}-default`, type, enabled: false, events: Object.fromEntries(EVENT_KINDS.map((k) => [k, true])) };
+			});
 		}
 
 		function secretIsSet(view, channelId, type, fieldKey) {
@@ -427,9 +428,9 @@ select.mcn-input { width:auto; min-width:120px; cursor:pointer; }
 			);
 		}
 
-		/** 渠道编辑面板（全宽）：字段行 + 订阅事件 + 测试/删除。 */
+		/** 渠道编辑面板（全宽）：字段行 + 订阅事件 + 测试。 */
 		function ChannelEditor(props) {
-			const { channel, view, onChange, onRemove } = props;
+			const { channel, view, onChange } = props;
 			const [busy, setBusy] = react.useState(false);
 			const [note, setNote] = react.useState("");
 			const fields = TYPE_FIELDS[channel.type] ?? [];
@@ -530,7 +531,6 @@ select.mcn-input { width:auto; min-width:120px; cursor:pointer; }
 						},
 						busy ? "发送中…" : "发送测试",
 					),
-					h("button", { className: "mcn-btn mcn-btn-danger", onClick: () => onRemove(channel.id) }, "删除渠道"),
 				),
 			);
 		}
@@ -548,7 +548,12 @@ select.mcn-input { width:auto; min-width:120px; cursor:pointer; }
 					.then((r) => r.json())
 					.then((data) => {
 						setView(data);
-						if (data?.status === "ready") setDraft(JSON.parse(JSON.stringify(data.value)));
+						if (data?.status !== "ready") return;
+						const value = JSON.parse(JSON.stringify(data.value));
+						value.channels = normalizeChannels(value.channels);
+						setDraft(value);
+						// 正在编辑的渠道若在归一化中被收敛，收起面板
+						setEditingId((cur) => (cur && value.channels.some((c) => c.id === cur) ? cur : null));
 					})
 					.catch(() => setView({ status: "unavailable" }));
 			}, []);
@@ -608,7 +613,6 @@ select.mcn-input { width:auto; min-width:120px; cursor:pointer; }
 				h(
 					Group,
 					{ title: "推送渠道", count: channels.length },
-					channels.length === 0 ? h("span", { className: "mcn-empty" }, "还没有渠道，点下方虚线卡片添加一个。") : null,
 					h(
 						"div",
 						{ className: "mcn-grid" },
@@ -621,27 +625,6 @@ select.mcn-input { width:auto; min-width:120px; cursor:pointer; }
 								onEdit: () => setEditingId((cur) => (cur === channel.id ? null : channel.id)),
 							}),
 						),
-						...Object.keys(TYPE_LABELS).map((type) =>
-							h(
-								"button",
-								{
-									key: `add-${type}`,
-									className: "mcn-card mcn-add-card",
-									onClick: () => {
-										const channel = newChannel(type);
-										patch((cur) => ({ channels: [...(cur.channels ?? []), channel] }));
-										setEditingId(channel.id);
-									},
-								},
-								h(
-									"div",
-									{ className: "mcn-card-top" },
-									h("span", { className: "mcn-chip" }, h(TypeIcon, { type: "plus" })),
-									h("span", { className: "mcn-card-title" }, TYPE_LABELS[type]),
-								),
-								h("span", { className: "mcn-card-desc" }, "点击添加"),
-							),
-						),
 					),
 					editingChannel !== null
 						? h(ChannelEditor, {
@@ -649,10 +632,6 @@ select.mcn-input { width:auto; min-width:120px; cursor:pointer; }
 								channel: editingChannel,
 								view,
 								onChange: (next) => patch((cur) => ({ channels: cur.channels.map((c) => (c.id === editingChannel.id ? next : c)) })),
-								onRemove: (id) => {
-									patch((cur) => ({ channels: cur.channels.filter((c) => c.id !== id) }));
-									setEditingId(null);
-								},
 							})
 						: null,
 				),
