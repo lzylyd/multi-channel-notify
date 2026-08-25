@@ -24,7 +24,7 @@ window.__ModuleLoader__.load({
 		const ROUTE_PREFIX = "/multi-channel-notify";
 		const SECTION_LABEL = "消息推送";
 		const NAV_MARKER = "data-mcn-settings-nav";
-		const PLUGIN_VERSION = "0.1.6";
+		const PLUGIN_VERSION = "0.1.7";
 
 		const EVENT_LABELS = {
 			"plan-completed": ["计划完成", "退出计划模式/计划被批准"],
@@ -89,7 +89,7 @@ window.__ModuleLoader__.load({
 		// ---- 样式（对齐 dsh-better-sidebar 设置页的设计 token）----
 		const UI_STYLE_ID = "multi-channel-notify-ui";
 		const UI_CSS = `
-.mcn-section { display:flex; flex-direction:column; gap:16px; width:100%; max-width:min(760px,100%); min-width:0; }
+.mcn-section { display:flex; flex-direction:column; gap:16px; width:100%; max-width:min(760px,100%,calc(100vw - 48px)); min-width:0; }
 .mcn-badge { display:inline-flex; align-items:center; gap:8px; align-self:flex-start;
   border:1px solid var(--dsw-alias-border-l2); background:var(--dsw-alias-bg-layer-2);
   border-radius:999px; padding:4px 12px 4px 14px; font-size:12px; line-height:18px; }
