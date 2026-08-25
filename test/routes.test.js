@@ -161,3 +161,13 @@ describe('sameOrigin', () => {
     assert.equal(sameOrigin(requestWith({ host: '127.0.0.1:3080', origin: 'http://127.0.0.1:9999' }), true), false)
   })
 })
+
+describe('mergeChannelSecrets · serverchan-turbo', () => {
+  it('turbo SendKey 留空 → 继承已存值；填新值 → 覆盖', () => {
+    const current = { channels: [{ id: 't1', type: 'serverchan-turbo', enabled: true, 'serverchan-turbo': { sendKey: 'SCT_KEEP' } }] }
+    const inherit = mergeChannelSecrets({ channels: [{ id: 't1', type: 'serverchan-turbo', enabled: true }] }, current)
+    assert.equal(inherit.channels[0]['serverchan-turbo'].sendKey, 'SCT_KEEP')
+    const rotate = mergeChannelSecrets({ channels: [{ id: 't1', type: 'serverchan-turbo', enabled: true, 'serverchan-turbo': { sendKey: 'SCT_NEW' } }] }, current)
+    assert.equal(rotate.channels[0]['serverchan-turbo'].sendKey, 'SCT_NEW')
+  })
+})

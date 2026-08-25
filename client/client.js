@@ -24,7 +24,7 @@ window.__ModuleLoader__.load({
 		const ROUTE_PREFIX = "/multi-channel-notify";
 		const SECTION_LABEL = "消息推送";
 		const NAV_MARKER = "data-mcn-settings-nav";
-		const PLUGIN_VERSION = "0.1.9";
+		const PLUGIN_VERSION = "0.1.10";
 
 		const EVENT_LABELS = {
 			"plan-completed": ["计划完成", "退出计划模式/计划被批准"],
@@ -39,6 +39,7 @@ window.__ModuleLoader__.load({
 
 		const TYPE_LABELS = {
 			serverchan: "Server酱³",
+			"serverchan-turbo": "Server酱 Turbo",
 			"windows-toast": "Windows Toast",
 			wecom: "企业微信机器人",
 			webhook: "自定义 Webhook",
@@ -51,6 +52,9 @@ window.__ModuleLoader__.load({
 				{ key: "apiUrl", label: "API URL（可选，优先于 SendKey）" },
 				{ key: "short", label: "卡片简述（可选）" },
 				{ key: "tags", label: "标签（竖线分隔，可选）" },
+			],
+			"serverchan-turbo": [
+				{ key: "sendKey", label: "SendKey（sct.ftqq.com/sendkey 页获取，SCT… 开头）", secret: true, placeholder: "SCT…" },
 			],
 			"windows-toast": [
 				// 注意桶名是 camelCase 的 windowsToast（与 config-schema.js 声明一致），
@@ -75,7 +79,11 @@ window.__ModuleLoader__.load({
 		function TypeIcon(props) {
 			const paths = {
 				serverchan: ["M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9", "M10.3 21a1.94 1.94 0 0 0 3.4 0"],
-				"windows-toast": ["M2 8h20", "M10 4v4", "M4 4h16a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z"],
+				"serverchan-turbo": ["M22 2 11 13", "M22 2 15 22 11 13 2 9 22 2"],
+				"serverchan-turbo": [
+				{ key: "sendKey", label: "SendKey（sct.ftqq.com/sendkey 页获取，SCT… 开头）", secret: true, placeholder: "SCT…" },
+			],
+			"windows-toast": ["M2 8h20", "M10 4v4", "M4 4h16a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z"],
 				wecom: ["M7.9 20A9 9 0 1 0 4 16.1L2 22Z"],
 				webhook: ["M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z", "M2 12h20"],
 			}[props.type] ?? [];

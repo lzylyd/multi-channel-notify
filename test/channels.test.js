@@ -7,6 +7,7 @@ import assert from 'node:assert/strict'
 import { test } from 'node:test'
 
 import * as serverchan from '../lib/channels/serverchan.js'
+import * as serverchanTurbo from '../lib/channels/serverchan-turbo.js'
 import * as wecom from '../lib/channels/wecom.js'
 import * as windowsToast from '../lib/channels/windows-toast.js'
 import * as webhook from '../lib/channels/webhook.js'
@@ -260,4 +261,46 @@ test('serverchan：HTTP 200 + errno 0 视为成功；errno 非零抛出真实原
     }),
     /daily limit/,
   )
+})
+
+// ---------------------------------------------------------------------------
+// serverchan-turbo（Server酱 Turbo，微信推送）
+// ---------------------------------------------------------------------------
+
+test('serverchan-turbo：endpointOf/buildRequest 走 sctapi.ftqq.com/<key>.send 表单 POST', () => {
+  const channel = normalizeChannel({ type: 'serverchan-turbo', enabled: true, 'serverchan-turbo': { sendKey: 'SCTabc123' } })
+  const m = serverchanTurbo
+  assert.equal(m.endpointOf(channel['serverchan-turbo']), 'https://sctapi.ftqq.com/SCTabc123.send')
+  const { url, init } = m.buildRequest(channel, { title: '标题', body: '正文\n第二行' })
+  assert.equal(url, 'https://sctapi.ftqq.com/SCTabc123.send')
+  assert.equal(init.method, 'POST')
+  assert.equal(init.headers['content-type'], 'application/x-www-form-urlencoded')
+  assert.deepEqual(new URLSearchParams(init.body).get('title'), '标题')
+  assert.deepEqual(new URLSearchParams(init.body).get('desp'), '正文\n第二行')
+})
+
+test('serverchan-turbo：缺 key 抛错；HTTP 200 + code 0 成功；HTTP 400 抛真实原因', async () => {
+  const empty = normalizeChannel({ type: 'serverchan-turbo', enabled: true })
+  assert.throws(() => serverchanTurbo.buildRequest(empty, { title: 't', body: 'b' }))
+  const channel = normalizeChannel({ type: 'serverchan-turbo', enabled: true, 'serverchan-turbo': { sendKey: 'SCTabc' } })
+  const MESSAGE = { title: '标题', body: '正文' }
+  // 成功：HTTP 200 + code 0
+  await serverchanTurbo.send(channel, MESSAGE, { fetch: async () => ({ ok: true, text: async () => '{"code":0,"message":"ok"}' }) })
+  // 失败：HTTP 400 + 错误信息
+  await assert.rejects(
+    serverchanTurbo.send(channel, MESSAGE, { fetch: async () => ({ ok: false, status: 400, text: async () => '{"code":40001,"message":"[AUTH]错误的Key"}' }) }),
+    /HTTP 400/,
+  )
+  // 失败：HTTP 200 但 code 非 0（配额等）
+  await assert.rejects(
+    serverchanTurbo.send(channel, MESSAGE, { fetch: async () => ({ ok: true, text: async () => '{"code":43002,"message":"daily limit"}' }) }),
+    /daily limit/,
+  )
+})
+
+test('serverchan-turbo：登记进 ADAPTERS / CHANNEL_TYPES，adapterOf 命中', () => {
+  assert.equal(typeof ADAPTERS['serverchan-turbo'].send, 'function')
+  assert.ok(CHANNEL_TYPES.some((t) => t.type === 'serverchan-turbo'))
+  const channel = normalizeChannel({ type: 'serverchan-turbo', enabled: true, 'serverchan-turbo': { sendKey: 'SCTx' } })
+  assert.equal(adapterOf(channel), ADAPTERS['serverchan-turbo'])
 })
