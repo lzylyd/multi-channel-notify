@@ -24,7 +24,7 @@ window.__ModuleLoader__.load({
 		const ROUTE_PREFIX = "/multi-channel-notify";
 		const SECTION_LABEL = "消息推送";
 		const NAV_MARKER = "data-mcn-settings-nav";
-		const PLUGIN_VERSION = "0.1.8";
+		const PLUGIN_VERSION = "0.1.9";
 
 		const EVENT_LABELS = {
 			"plan-completed": ["计划完成", "退出计划模式/计划被批准"],
@@ -96,6 +96,8 @@ window.__ModuleLoader__.load({
 .mcn-event-chip,.mcn-input,.mcn-textarea,.mcn-btn,.mcn-savebar,.mcn-card-desc {
   box-sizing:border-box; }
 .mcn-section { display:flex; flex-direction:column; gap:16px; width:100%; max-width:min(760px,100%,calc(100vw - 48px)); min-width:0; }
+.mcn-topbar { display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; min-width:0; }
+.mcn-topbar-actions { display:flex; align-items:center; gap:8px; flex:none; }
 .mcn-badge { display:inline-flex; align-items:center; gap:8px; align-self:flex-start;
   border:1px solid var(--dsw-alias-border-l2); background:var(--dsw-alias-bg-layer-2);
   border-radius:999px; padding:4px 12px 4px 14px; font-size:12px; line-height:18px; }
@@ -609,13 +611,24 @@ select.mcn-input { width:auto; min-width:120px; cursor:pointer; }
 			return h(
 				"div",
 				{ className: "mcn-section" },
-				// 版本徽章
+				// 顶栏：版本徽章 + 保存/重新加载（右对齐，与「打开配置」同排，免滚动）
 				h(
 					"div",
-					{ className: "mcn-badge" },
-					h("span", { className: "mcn-badge-name" }, SECTION_LABEL),
-					h("span", { className: "mcn-badge-tag" }, `multi-channel-notify v${PLUGIN_VERSION}`),
+					{ className: "mcn-topbar" },
+					h(
+						"div",
+						{ className: "mcn-badge" },
+						h("span", { className: "mcn-badge-name" }, SECTION_LABEL),
+						h("span", { className: "mcn-badge-tag" }, `multi-channel-notify v${PLUGIN_VERSION}`),
+					),
+					h(
+						"div",
+						{ className: "mcn-topbar-actions" },
+						h("button", { className: "mcn-btn mcn-btn-primary", onClick: save, disabled: saving }, saving ? "保存中…" : "保存配置"),
+						h("button", { className: "mcn-btn", onClick: load, disabled: saving }, "重新加载"),
+					),
 				),
+				saveNote === "" ? null : h("div", { className: "mcn-note", style: { padding: "0 2px" } }, saveNote),
 				// 推送渠道
 				h(
 					Group,
@@ -692,14 +705,6 @@ select.mcn-input { width:auto; min-width:120px; cursor:pointer; }
 							}),
 						),
 					),
-				),
-				// 保存栏
-				h(
-					"div",
-					{ className: "mcn-savebar" },
-					h("button", { className: "mcn-btn mcn-btn-primary", onClick: save, disabled: saving }, saving ? "保存中…" : "保存配置"),
-					h("button", { className: "mcn-btn", onClick: load, disabled: saving }, "重新加载"),
-					saveNote === "" ? null : h("span", { className: "mcn-note" }, saveNote),
 				),
 			);
 		}

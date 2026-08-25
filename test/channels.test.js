@@ -246,3 +246,18 @@ test('webhook：GET 无 body；send 非 2xx 抛错', async () => {
     /HTTP 500/,
   )
 })
+
+test('serverchan：HTTP 200 + errno 0 视为成功；errno 非零抛出真实原因', async () => {
+  const channel = normalizeChannel({ type: 'serverchan', enabled: true, serverchan: { sendKey: 'sctp21599tabc' } })
+  // 成功：code0/errno0
+  await serverchan.send(channel, MESSAGE, {
+    fetch: async () => ({ ok: true, text: async () => '{"code":0,"errno":0,"message":"SUCCESS"}' }),
+  })
+  // 失败：HTTP 200 但 errno 非零（如配额/密钥问题）
+  await assert.rejects(
+    serverchan.send(channel, MESSAGE, {
+      fetch: async () => ({ ok: true, text: async () => '{"code":422,"errno":422,"message":"daily limit"}' }),
+    }),
+    /daily limit/,
+  )
+})
