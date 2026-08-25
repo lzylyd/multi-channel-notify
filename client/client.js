@@ -284,6 +284,32 @@ select.mcn-input { width:auto; min-width:120px; cursor:pointer; }
 		}
 
 		/**
+		 * 密钥输入框（write-only）：
+		 * - 不回填已存值（视图里本来就没有），但输入必须走本地 state——
+		 *   若受控 value 恒为空串，每次键入都会被重渲染拉回空（曾因此无法输入）；
+		 * - 输入内容实时同步进父 draft；清空=回退「保持已存值」（下发 undefined）；
+		 * - 保存成功后 revision 变化 → 自动清空输入框。
+		 */
+		function SecretField(props) {
+			const [val, setVal] = react.useState("");
+			react.useEffect(() => {
+				setVal("");
+			}, [props.revision]);
+			return h("input", {
+				className: "mcn-input",
+				type: "password",
+				autoComplete: "new-password",
+				placeholder: props.savedHint ? "••••••••" : props.placeholder,
+				value: val,
+				onChange: (e) => {
+					const v = e.target.value;
+					setVal(v);
+					props.onChange(v === "" ? undefined : v);
+				},
+			});
+		}
+
+		/**
 		 * 字典编辑器：每行「Key: Value」（首个冒号分隔），空行忽略。
 		 * 编辑态以本地原始文本为准（受控回弹修复）：全部行合法时即时提交；
 		 * 存在非法行只暂存不提交，失焦时兜底解析。
@@ -445,20 +471,28 @@ select.mcn-input { width:auto; min-width:120px; cursor:pointer; }
 					const bucket = channel[bucketName] ?? {};
 					const isSecret = field.secret === true;
 					const savedHint = isSecret && secretIsSet(view, channel.id, channel.type, field.key);
-					const controlProps = {
-						options: field.options,
-						kind: isSecret ? "password" : field.kind,
-						placeholder: isSecret ? (savedHint ? "••••••••" : field.placeholder) : field.placeholder,
-						value: isSecret ? "" : bucket[field.key],
-						onChange: (v) => {
-							if (isSecret && v === "") return; // 空=保持已存值
-							onChange({ ...channel, [bucketName]: { ...bucket, [field.key]: v } });
-						},
-					};
-					const control =
-						field.kind === "select" ? h(SelectField, controlProps)
-						: field.kind === "dict" ? h(DictField, controlProps)
-						: h(TextField, controlProps);
+					const control = isSecret
+						? h(SecretField, {
+								savedHint,
+								placeholder: field.placeholder,
+								revision: view.revision,
+								onChange: (v) => onChange({ ...channel, [bucketName]: { ...bucket, [field.key]: v } }),
+							})
+						: field.kind === "select" ? h(SelectField, {
+								options: field.options,
+								value: bucket[field.key],
+								onChange: (v) => onChange({ ...channel, [bucketName]: { ...bucket, [field.key]: v } }),
+							})
+						: field.kind === "dict" ? h(DictField, {
+								value: bucket[field.key],
+								onChange: (v) => onChange({ ...channel, [bucketName]: { ...bucket, [field.key]: v } }),
+							})
+						: h(TextField, {
+								kind: field.kind,
+								placeholder: field.placeholder,
+								value: bucket[field.key],
+								onChange: (v) => onChange({ ...channel, [bucketName]: { ...bucket, [field.key]: v } }),
+							});
 					return h(
 						Row,
 						{ key: field.key, title: field.label, desc: savedHint ? "已保存（留空保持不变）" : field.desc },
