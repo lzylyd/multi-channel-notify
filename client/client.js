@@ -24,7 +24,7 @@ window.__ModuleLoader__.load({
 		const ROUTE_PREFIX = "/multi-channel-notify";
 		const SECTION_LABEL = "消息推送";
 		const NAV_MARKER = "data-mcn-settings-nav";
-		const PLUGIN_VERSION = "0.1.7";
+		const PLUGIN_VERSION = "0.1.8";
 
 		const EVENT_LABELS = {
 			"plan-completed": ["计划完成", "退出计划模式/计划被批准"],
@@ -89,6 +89,12 @@ window.__ModuleLoader__.load({
 		// ---- 样式（对齐 dsh-better-sidebar 设置页的设计 token）----
 		const UI_STYLE_ID = "multi-channel-notify-ui";
 		const UI_CSS = `
+/* 统一 border-box：width:100%+padding 否则默认 content-box 会向右多出 padding 宽度，
+   .mcn-card-main 曾因此比卡片宽 24px、右侧开关溢出被裁剪（真机实测开关 right 1008 > 卡片 997） */
+.mcn-section,.mcn-badge,.mcn-group,.mcn-card,.mcn-card-main,.mcn-card-foot,.mcn-card-top,
+.mcn-grid,.mcn-row,.mcn-row-text,.mcn-control,.mcn-editor,.mcn-editor-head,.mcn-events,
+.mcn-event-chip,.mcn-input,.mcn-textarea,.mcn-btn,.mcn-savebar,.mcn-card-desc {
+  box-sizing:border-box; }
 .mcn-section { display:flex; flex-direction:column; gap:16px; width:100%; max-width:min(760px,100%,calc(100vw - 48px)); min-width:0; }
 .mcn-badge { display:inline-flex; align-items:center; gap:8px; align-self:flex-start;
   border:1px solid var(--dsw-alias-border-l2); background:var(--dsw-alias-bg-layer-2);
